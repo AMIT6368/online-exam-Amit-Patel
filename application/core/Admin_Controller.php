@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 /**
- * Base Admin Class - used for all administration pages
+ * Base Admin Class 
  */
 class Admin_Controller extends MY_Controller {
     /**

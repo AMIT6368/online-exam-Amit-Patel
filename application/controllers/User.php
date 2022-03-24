@@ -9,13 +9,7 @@ class User extends Public_Controller {
         $this->load->model('UsersModel');
         $this->load->helper('core_helper');
         $this->load->library('encryption');
-        if($this->settings->facebook_app_id!='' && $this->settings->facebook_app_secret!='') {
-            $this->load->library('facebook');
-        }
-        
-        $this->load->library('Googleplus');
         $this->add_js_theme('social_login.js');
-
         // p($this->session->userdata('logged_in'));
     }
     /**************************************************************************************
@@ -31,16 +25,9 @@ class User extends Public_Controller {
      * Validate login credentials
      */
     function login() {
-
         if ($this->session->userdata('logged_in')) {
             $logged_in_user = $this->session->userdata('logged_in');
-
-            if ($logged_in_user['is_admin']) {
-                redirect('admin');
-            } 
-            else {
                 redirect(base_url());
-            }
         }
         // set form validation rules
         $this->form_validation->set_error_delimiters($this->config->item('error_delimeter_left'), $this->config->item('error_delimeter_right'));
@@ -64,8 +51,8 @@ class User extends Public_Controller {
                 }
             }
         }
-        $login_url = $this->googleplus->loginURL();
-        $content_data['login_url'] = $login_url;
+       // $login_url = $this->googleplus->loginURL();
+       // $content_data['login_url'] = $login_url;
         // setup page header data
         $this->set_title(lang('user_link_register_account'));
         $data = $this->includes;
@@ -80,84 +67,6 @@ class User extends Public_Controller {
         $this->session->unset_userdata('logged_in');
         $this->session->sess_destroy();
         redirect('login');
-    }
-    /**
-     * Registration Form
-     */
-    function register() {
-        
-        // validators
-        $this->form_validation->set_error_delimiters($this->config->item('error_delimeter_left'), $this->config->item('error_delimeter_right'));
-        $this->form_validation->set_rules('username', 'Username', 'required|trim|min_length[5]|max_length[30]|callback__check_username');
-        $this->form_validation->set_rules('first_name', 'First Name', 'required|trim|min_length[2]|max_length[32]');
-        $this->form_validation->set_rules('last_name', 'Last Name', 'required|trim|min_length[2]|max_length[32]');
-        $this->form_validation->set_rules('email', 'Email', 'required|trim|max_length[256]|valid_email|callback__check_email');
-        $this->form_validation->set_rules('language', 'Language', 'required|trim');
-        $this->form_validation->set_rules('password', 'Password', 'required|trim|min_length[5]');
-        $this->form_validation->set_rules('password_repeat', 'Repeat Password', 'required|trim|matches[password]');
-        if ($this->form_validation->run() == TRUE) {
-            // save the changes 
-            $validation_code = $this->UsersModel->create_profile($this->input->post());
-
-            if ($validation_code) {
-                $this->session->language = 'English';
-
-                // build the validation URL
-                $encrypted_email = sha1($this->input->post('email', TRUE));
-                $validation_url = base_url('user/validate') . "?e={$encrypted_email}&c={$validation_code}";
-                // build email
-                $email_msg = '';
-
-                $email_msg .= sprintf(lang('user_msg_email_new_account'), $this->settings->site_name);
-                $email_msg .= '<a href="'.$validation_url.'" title="Activate Account">Click Here</a>';
-                $email_msg .= lang('core_email_end');
-
-                $this->lang->load('users', $this->user['language']);
-
-                $mail_subject = lang('user_email_new_account'). ' '.$this->input->post('first_name', TRUE);
-                $mail_to = $this->input->post('email', TRUE);
-                $recipet_name = $this->input->post('first_name', TRUE);
-
-                $this->load->library('SendMail');
-                if($this->settings->email_user_activation == 'YES')
-                {
-                    
-                    $mail_status = $this->sendmail->sendTo($mail_to, $mail_subject, $recipet_name, $email_msg);
-                    
-                    if($mail_status)
-                    {
-                        
-                        $this->session->set_flashdata('message', sprintf(lang('user_msg_register_success'), $this->input->post('first_name', TRUE)));
-                        $this->session->set_flashdata('message', "Congratulation Register Successfully", $this->input->post('first_name', TRUE));
-                    }
-                    else
-                    {
-                        
-                        $this->session->set_flashdata('error', 'Sorry '.$this->input->post('first_name', TRUE).' Mail Send Error');
-                    }
-                }
-                else
-                {
-                    
-                    $this->session->set_flashdata('message', "Congratulation Register Successfully", $this->input->post('first_name', TRUE));
-                }
-            } 
-            else 
-            {
-                $this->session->set_flashdata('error', lang('user_error_register_failed'));
-                redirect($_SERVER['REQUEST_URI'], 'refresh');
-            }
-            // redirect home and display message
-            redirect(base_url('login'));
-        }
-        // setup page header data
-        $this->set_title(lang('front_register'));
-        $data = $this->includes;
-        // set content data
-        $content_data = array('cancel_url' => base_url(), 'user' => NULL, 'password_required' => TRUE);
-        // load views
-        $data['content'] = $this->load->view('user/profile_form', $content_data, TRUE);
-        $this->load->view($this->template, $data);
     }
 
     /**
@@ -175,79 +84,6 @@ class User extends Public_Controller {
             $this->session->set_flashdata('error', lang('user_error_validate_failed'));
         }
         redirect(base_url('login'));
-    }
-
-    /**
-     * Forgot password
-     */
-    function forgot() {
-        // validators
-        $this->form_validation->set_error_delimiters($this->config->item('error_delimeter_left'), $this->config->item('error_delimeter_right'));
-        $this->form_validation->set_rules('email', 'Email', 'required|trim|max_length[256]|valid_email|callback__check_email_exists');
-        if ($this->form_validation->run() == TRUE) {
-            // save the changes
-            $results = $this->UsersModel->reset_password_by_token($this->input->post('email',TRUE));
-
-            if ($results) 
-            {
-                $key = uniqid(rand(),1);
-                $token = md5($key."_EMAIL_".$results->email);
-
-                $token_data = array();
-                $token_data['token']         = $token;
-                $token_data['updated']       = date('Y-m-d H:i:s');
-
-                $update_status = $this->UsersModel->update_user_token_by_email($results->email, $token_data);
-                if($update_status)
-                {
-
-                    $reset_url = base_url('user/reset-my-password/').$token;
-
-                    $email_msg = lang('core_email_start');
-
-                    $email_msg.= sprintf(lang('user_msg_email_password_reset'), $this->settings->site_name, 'Click the below link to reset your password <br>');
-
-                    $email_msg.= "<a href='".$reset_url."' Title='".lang('user_reset_password')."'>'".lang('click_here')."'</a>";
-
-                    $email_msg.= '<br>'.lang('core_email_end');
-                    // send email
-
-                    $mail_to = $results->email;
-                    $recipet_name = $results->first_name;
-                    $mail_subject = lang('user_msg_email_password_reset_title').$results->first_name;
-                    $this->load->library('SendMail');
-                    $mail_status = $this->sendmail->sendTo($mail_to, $mail_subject, $recipet_name, $email_msg);
-
-                    if($mail_status)
-                    {
-                        $this->session->set_flashdata("message",$results->first_name." Your Password Change Link Send To Your Mail Address. ! ");
-                    }
-                    else
-                    {
-                       
-                        $this->session->set_flashdata("error",lang('email_encountered_an_error').$results->first_name." !");
-                    }
-                }
-                else
-                {
-                     $this->session->set_flashdata("error","Sorry Password Update Error ".$results->first_name." !");
-                }
-            } 
-            else 
-            {
-                $this->session->set_flashdata('error', lang('user_error_password_reset_failed'));
-            }
-            redirect(base_url('login'));
-        }
-
-        // setup page header data
-        $this->set_title(lang('front_forgot'));
-        $data = $this->includes;
-        // set content data
-        $content_data = array('cancel_url' => base_url(), 'user' => NULL);
-        // load views
-        $data['content'] = $this->load->view('user/forgot_form', $content_data, TRUE);
-        $this->load->view($this->template, $data);
     }
 
     /**************************************************************************************

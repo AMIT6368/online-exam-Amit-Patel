@@ -166,58 +166,8 @@ class Quiz_Controller extends Public_Controller {
         $this->load->view($this->template, $data);
     }
 
-    function like_quiz()
-    {
-        $response = [];    
-        if($this->session->userdata('logged_in')) 
-        {
-            $save_quiz_like['quiz_id'] = $_POST['quiz_id'];
-            $save_quiz_like['user_id'] = $this->session->userdata('logged_in')['id'];
-            $inserted_data = $this->HomeModel->insert_quiz_like($save_quiz_like);
-            $get_count_of_likes = $this->HomeModel->get_count_likes_through_quiz_id($_POST['quiz_id']);
-            
-            if($inserted_data)
-            {
-                $response['success'] = $get_count_of_likes;
-            }
-            else
-            {
-                $response['error'] = 'unsuccessfull';
-            }
-        }
-        else
-        {
-            $response['status'] = 'redirect';
-        }
-        echo json_encode($response);
-    }
+    
 
-    function like_quiz_delete()
-    {
-        $response = [];
-        if($this->session->userdata('logged_in')) 
-        {
-            $quiz_id = $_POST['quiz_id'];
-            $user_id = isset($this->user['id']) ? $this->user['id'] : 0;
-            
-            $delete_data = $this->HomeModel->delete_like_quiz_through_quizid($quiz_id, $user_id);
-            $get_count_of_likes = $this->HomeModel->get_count_likes_through_quiz_id($_POST['quiz_id']);
-            
-            if($delete_data)
-            {
-                $response['success'] = $get_count_of_likes;
-            }
-            else
-            {
-                $response['error'] = 'unsuccessfull';
-            }
-        }
-        else
-        {
-            $response['status'] = 'redirect';
-        }
-        echo json_encode($response);
-    }
 
     function quiz_detail($quiz_id = false)
     {
@@ -257,98 +207,6 @@ class Quiz_Controller extends Public_Controller {
         $this->load->view($this->template, $data);      
     } 
 
-    function submit_rating()
-    {
-
-        $this->form_validation->set_rules('reviewstar','Review Star', 'required|min_length[1]|max_length[5]');
-        $save_rating_data = array();
-        if($this->session->userdata('logged_in')) 
-        {
-            
-           if($this->input->post('save'))
-           {
-                if ($this->form_validation->run() == TRUE) 
-                {
-                    $save_rating_data['user_id'] = $this->session->userdata('logged_in')['id'];
-                    $save_rating_data['quiz_id'] = $this->input->post('quizid');
-                    $save_rating_data['review_content'] = $this->input->post('ratingcontent');
-                    $save_rating_data['rating'] = $this->input->post('reviewstar');
-
-                    $inserted_data = $this->HomeModel->insert_rating_data($save_rating_data);
-                    if($inserted_data)
-                    {
-                        $this->session->set_flashdata('message', lang('ratting_added_successfully'));
-                    }
-                    else
-                    {
-                        $this->session->set_flashdata('error', lang('eroor_during_ratting_added')); 
-                    }
-                }
-                else
-                {
-                    $fielderror = $this->form_validation->error_array();
-                    
-                    $this->session->set_flashdata('error', implode(" ", $fielderror)); 
-                    redirect($_SERVER['HTTP_REFERER']);                               
-                }
-           }         
-        }   
-        else 
-        {
-           $this->session->set_flashdata('error', lang('user_required')); 
-           redirect(base_url("login"));
-        } 
-        redirect($_SERVER['HTTP_REFERER']);
-    }
-
-    function review_like_insert()
-    {
-        $response = [];    
-        if($this->session->userdata('logged_in')) 
-        {
-            $save_review_like['review_id'] = $_POST['review_id'];
-            $save_review_like['user_id'] = $this->session->userdata('logged_in')['id'];
-            $inserted_data = $this->HomeModel->insert_review_like($save_review_like);
-            $get_count_of_likes = $this->HomeModel->get_count_likes_through_review_id($_POST['review_id']);
-            
-            if($inserted_data)
-            {
-                $response['success'] = $get_count_of_likes;
-            }
-            else
-            {
-                $response['error'] = 'unsuccessfull';   
-            }
-        }
-        else
-        {
-            $response['status'] = 'redirect';
-        }
-        echo json_encode($response);
-    }
-
-    function review_delete()
-    {
-        $response = [];
-        if($this->session->userdata('logged_in')) 
-        {
-            $review_id = $_POST['review_id'];
-            $delete_data = $this->HomeModel->delete_review_like_through_reviewid($review_id,$this->user['id']);
-            $get_count_of_likes = $this->HomeModel->get_count_likes_through_review_id($_POST['review_id']);
-            if($delete_data)
-            {
-                $response['successfull'] = $get_count_of_likes;
-            }
-            else
-            {
-                $response['error'] = 'unsuccessfull';
-            }
-        }
-        else
-        {
-            $response['status'] = 'redirect';
-        }
-        echo json_encode($response);
-    }
+    
     
 }

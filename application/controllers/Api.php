@@ -15,7 +15,7 @@ class Api extends API_Controller {
         exit;
     }
     /**
-     * Users API - DO NOT LEAVE THIS ACTIVE IN A PRODUCTION ENVIRONMENT !!! - for demo purposes only
+     * Users API
      */
     function users() {
         // load the users model and admin language file
